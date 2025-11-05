@@ -1,0 +1,146 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: texnika
+      POSTGRES_USER: texnika
+      POSTGRES_PASSWORD: texnika
+    volumes:
+      - ../postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "texnika"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - ../redis-data:/data
+
+  minio:
+    image: minio/minio:RELEASE.2024-01-11T07-46-16Z
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: texnika
+      MINIO_ROOT_PASSWORD: texnika_secret
+    volumes:
+      - ../minio-data:/data
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    environment:
+      discovery.type: single-node
+      plugins.security.disabled: "true"
+      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ../opensearch-data:/usr/share/opensearch/data
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:2.11.0
+    environment:
+      OPENSEARCH_HOSTS: '"http://opensearch:9200"'
+      DISABLE_SECURITY_DASHBOARDS_PLUGIN: "true"
+    ports:
+      - "5601:5601"
+    depends_on:
+      - opensearch
+
+  api:
+    build:
+      context: ..
+      dockerfile: infrastructure/Dockerfile.api
+    env_file:
+      - ../.env.example
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ..:/workspace
+    working_dir: /workspace/apps/api
+    command: ["pnpm", "run", "start:dev"]
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      opensearch:
+        condition: service_started
+      minio:
+        condition: service_started
+
+  web:
+    build:
+      context: ..
+      dockerfile: infrastructure/Dockerfile.web
+    env_file:
+      - ../.env.example
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ..:/workspace
+    working_dir: /workspace/apps/web
+    command: ["pnpm", "run", "dev"]
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+
+  admin:
+    build:
+      context: ..
+      dockerfile: infrastructure/Dockerfile.admin
+    env_file:
+      - ../.env.example
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ..:/workspace
+    working_dir: /workspace/apps/admin
+    command: ["pnpm", "run", "dev"]
+    ports:
+      - "3002:3000"
+    depends_on:
+      - api
+
+  workers:
+    build:
+      context: ..
+      dockerfile: infrastructure/Dockerfile.workers
+    env_file:
+      - ../.env.example
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ..:/workspace
+    working_dir: /workspace/packages/workers
+    command: ["pnpm", "run", "start"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      opensearch:
+        condition: service_started
+
+networks:
+  default:
+    driver: bridge

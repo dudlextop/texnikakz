@@ -1,0 +1,11 @@
+FROM node:20-alpine AS base
+RUN corepack enable && corepack prepare pnpm@8.15.4 --activate
+WORKDIR /workspace
+COPY package.json pnpm-workspace.yaml ./
+COPY apps/api/package.json apps/api/
+COPY packages/shared/package.json packages/shared/
+RUN pnpm install --filter ./apps/api --filter ./packages/shared --recursive --ignore-scripts
+COPY . .
+WORKDIR /workspace/apps/api
+RUN pnpm build || true
+CMD ["pnpm", "start:dev"]
