@@ -1,0 +1,82 @@
+{
+  "settings": {
+    "index": {
+      "number_of_shards": 1,
+      "number_of_replicas": 0
+    },
+    "analysis": {
+      "filter": {
+        "ru_stop": {
+          "type": "stop",
+          "stopwords": "_russian_"
+        },
+        "ru_stemmer": {
+          "type": "stemmer",
+          "language": "russian"
+        }
+      },
+      "analyzer": {
+        "ru_search": {
+          "type": "custom",
+          "tokenizer": "standard",
+          "filter": [
+            "lowercase",
+            "ru_stop",
+            "ru_stemmer"
+          ]
+        }
+      }
+    }
+  },
+  "mappings": {
+    "dynamic": "false",
+    "properties": {
+      "id": { "type": "keyword" },
+      "slug": { "type": "keyword" },
+      "title": {
+        "type": "text",
+        "analyzer": "ru_search",
+        "fields": {
+          "keyword": { "type": "keyword", "ignore_above": 256 }
+        }
+      },
+      "description": {
+        "type": "text",
+        "analyzer": "ru_search"
+      },
+      "categoryId": { "type": "keyword" },
+      "categorySlug": { "type": "keyword" },
+      "cityId": { "type": "keyword" },
+      "citySlug": { "type": "keyword" },
+      "regionId": { "type": "keyword" },
+      "dealerId": { "type": "keyword" },
+      "dealerPlan": { "type": "keyword" },
+      "dealType": { "type": "keyword" },
+      "sellerType": { "type": "keyword" },
+      "status": { "type": "keyword" },
+      "year": { "type": "integer" },
+      "price": { "type": "double" },
+      "priceCurrency": { "type": "keyword" },
+      "createdAt": { "type": "date" },
+      "updatedAt": { "type": "date" },
+      "expiresAt": { "type": "date", "ignore_malformed": true },
+      "publishedAt": { "type": "date", "ignore_malformed": true },
+      "mediaCount": { "type": "integer" },
+      "hasMedia": { "type": "boolean" },
+      "isVIP": { "type": "boolean" },
+      "isTOP": { "type": "boolean" },
+      "isHighlight": { "type": "boolean" },
+      "boostScore": { "type": "float" },
+      "freshnessScore": { "type": "float" },
+      "geo": { "type": "geo_point" },
+      "attributes": {
+        "type": "nested",
+        "properties": {
+          "key": { "type": "keyword" },
+          "value": { "type": "keyword" },
+          "numeric": { "type": "double" }
+        }
+      }
+    }
+  }
+}
