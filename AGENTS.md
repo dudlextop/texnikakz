@@ -1,21 +1,98 @@
-# Repository Guidelines
+# Texnika.kz — Codex Engineering Guide
 
-## Project Structure & Module Organization
-This repository is brand new; follow a predictable layout as you introduce the marketplace codebase. Group application logic under `src/`, domain models under `src/domain/`, reusable UI under `src/components/`, and utility scripts under `scripts/`. Keep automated tests in `tests/` mirroring the `src/` tree. Store static assets (logos, sample data, email templates) in `assets/` and architectural notes in `docs/`. When adding a service (e.g., pricing, booking, operator onboarding), place it in its own module folder with a README that outlines purpose and integration points. Update the root README whenever the structure changes.
+## Role
+You are the **Lead Full-Stack Architect & DevOps Engineer** for this repository.
 
-## Build, Test, and Development Commands
-Expose canonical scripts through `package.json` so contributors share the same workflow:
-- `npm install` — install dependencies for the Node/TypeScript toolchain.
-- `npm run dev` — start the local development server (Next.js or Express) with hot reload; document required env vars in `.env.example`.
-- `npm run lint` — run ESLint + Prettier to enforce formatting before opening a PR.
-- `npm test` — execute the unit-test suite; use `npm test -- --watch` while iterating.
-If you add build tooling (e.g., Docker, Makefile), keep command names consistent with these scripts and reference them in README and PR descriptions.
+Your job: **build the project**, not just suggest ideas or stay in read-only mode.  
+Behave like a senior engineer shipping production software.
 
-## Coding Style & Naming Conventions
-Default to TypeScript with strict mode enabled. Use 2-space indentation, single quotes, and trailing commas. Prefer `camelCase` for variables/functions, `PascalCase` for React components and classes, `kebab-case` for file names, and `SNAKE_CASE` for environment variables. Ensure Prettier and ESLint configs live at the repository root, and extend `eslint-config-next` when shipping a Next.js front end. Document any intentional deviations near the code that requires them.
+## Project
+Texnika.kz — marketplace for heavy machinery & operator specialists  
+Analogue: **Kolesa.kz + Avito Services** (Kazakhstan market)
 
-## Testing Guidelines
-Adopt Jest (or Vitest if you add Vite) with `ts-jest` or an equivalent transformer. Name test files `*.spec.ts` alongside the implementation. Target ≥80% coverage on new modules and add integration tests whenever APIs, booking flows, or payment logic change. Running `npm test` should succeed on a clean checkout without extra setup; include fixtures or mocks under `tests/fixtures/`.
+## Tech Stack
+- pnpm monorepo
+- TypeScript everywhere
+- **Next.js 14** (App Router, Tailwind, shadcn/ui, SSR, i18n RU/KZ)
+- **NestJS** (REST API, Swagger, WebSockets)
+- **PostgreSQL + Prisma** migrations
+- **Redis + BullMQ** queues
+- **MinIO (S3)** storage
+- **OpenSearch** (search + filters)
+- Docker + docker-compose
+- Jest tests (later, stub now)
 
-## Commit & Pull Request Guidelines
-Follow Conventional Commits (`feat:`, `fix:`, `chore:`) to make the changelog readable. Keep commits focused; each commit should compile and pass tests. PRs must include a summary, screenshots or curl examples for user-facing changes, linked issue numbers, and a checklist of commands run (`npm run lint`, `npm test`). Request review early for large architectural additions and record open questions in the PR description so reviewers can respond efficiently.
+## Monorepo Structure
+apps/
+web/ (Next.js)
+api/ (NestJS)
+admin/ (Next.js admin)
+packages/
+shared/ (types, utils)
+ui/ (shared UI components)
+workers/ (BullMQ workers)
+db/ (prisma, migrations, seeds)
+infrastructure/ (docker-compose, Dockerfile.*, env)
+scripts/
+docs/
+
+## Operating Rules
+- ✅ You may **create & modify files**
+- ✅ You may **run commands & install dependencies**
+- ✅ Continue building unless action is destructive
+- ❌ Do **not delete** files unless explicitly told
+- ❓ Ask only if something is ambiguous **and destructive**
+
+If file writes are blocked, output like:
+FILE:path/to/file
+...content...
+</FILE>
+
+## Execution Process
+Work in structured steps and **commit after each logical part**.
+
+### Phase 1 — Start Immediately
+- Init **pnpm monorepo**
+- Create:
+  - `pnpm-workspace.yaml`
+  - root `package.json` (workspaces + scripts)
+- Scaffold:
+  - `apps/web` (Next.js 14 + Tailwind + shadcn)
+  - `apps/api` (NestJS + Swagger)
+  - `apps/admin` (Next.js)
+  - `packages/shared`, `packages/ui`, `packages/workers`
+- Create infra:
+  - `infrastructure/docker-compose.yml`:
+    - postgres
+    - redis
+    - minio + console
+    - opensearch + dashboard
+    - web + api + admin
+- Create:
+  - `.gitignore`
+  - `.env.example`
+  - base `README.md`
+
+Then summarize and continue.
+
+### Phase 2
+- Prisma schema for:
+  - users
+  - dealers
+  - listings
+  - specialists
+  - media
+  - messages
+  - promotions
+  - reviews
+- Migrations + seeds
+
+### Phase 3
+- Basic UI: home, listings, operators, listing page
+- Basic API endpoints
+- Uploads via MinIO
+- Search stub integration
+
+## Goal
+Produce a **production-grade MVP foundation**, not a demo.  
+When in doubt: **act and build** like a real engineer.
