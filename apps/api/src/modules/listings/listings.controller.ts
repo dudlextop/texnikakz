@@ -27,16 +27,12 @@ import { ListingListResponseDto } from './dto/listing-list-response.dto';
 import { ListingQueryDto } from './dto/listing-query.dto';
 import { RejectListingDto } from './dto/moderate-listing.dto';
 import { UpdateListingDto } from './dto/update-listing.dto';
-import { SearchService } from '../search/search.service';
 import { ListingsService } from './listings.service';
 
 @ApiTags('listings')
 @Controller('listings')
 export class ListingsController {
-  constructor(
-    private readonly listingsService: ListingsService,
-    private readonly searchService: SearchService
-  ) {}
+  constructor(private readonly listingsService: ListingsService) {}
 
   @Post()
   @ApiCookieAuth()
@@ -98,23 +94,8 @@ export class ListingsController {
 
   @Get()
   @ApiOkResponse({ type: ListingListResponseDto })
-  async findMany(@Query() query: ListingQueryDto) {
-    const searchResult = await this.searchService.searchListings(query);
-    const ids = searchResult.items.map((item) => item.id);
-    const listings = await this.listingsService.findManyByIds(ids);
-    const listingMap = new Map(listings.map((item) => [item.id, item]));
-    const orderedItems = ids.map((id) => listingMap.get(id)).filter((item): item is ListingDto => Boolean(item));
-
-    return {
-      items: orderedItems,
-      total: searchResult.total,
-      limit: searchResult.limit,
-      offset: searchResult.offset,
-      categoryFacets: searchResult.facets.categories.map((facet) => ({
-        categoryId: facet.id,
-        count: facet.count
-      }))
-    } satisfies ListingListResponseDto;
+  findMany(@Query() query: ListingQueryDto) {
+    return this.listingsService.list(query);
   }
 
   @Get(':id')

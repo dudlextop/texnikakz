@@ -10,7 +10,7 @@ export class SearchController {
   constructor(private readonly searchService: SearchService) {}
 
   @Get('listings')
-  @ApiOkResponse({ description: 'Listings search response', type: Object })
+  @ApiOkResponse({ description: 'Stubbed listing search response', type: Object })
   searchListings(@Query() query: ListingQueryDto): Promise<ListingsSearchResponse> {
     return this.searchService.searchListings(query);
   }

@@ -15,7 +15,6 @@ import {
 import { AuthenticatedUser } from '../common/interfaces/authenticated-user.interface';
 import { slugify } from '../common/utils/slug.util';
 import { PrismaService } from '../database/prisma.service';
-import { SearchSyncService } from '../search/search-sync.service';
 import { CreateListingDto } from './dto/create-listing.dto';
 import { ListingDto } from './dto/listing.dto';
 import { ListingListResponseDto } from './dto/listing-list-response.dto';
@@ -25,10 +24,7 @@ import { UpdateListingDto } from './dto/update-listing.dto';
 
 @Injectable()
 export class ListingsService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly searchSyncService: SearchSyncService
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateListingDto, user: AuthenticatedUser): Promise<ListingDto> {
     const dealerId = await this.resolveDealerForCreation(dto.dealerId, user);
@@ -56,9 +52,7 @@ export class ListingsService {
       },
       include: { media: true }
     });
-    const dto = this.toDto(listing);
-    await this.searchSyncService.syncListingById(dto.id);
-    return dto;
+    return this.toDto(listing);
   }
 
   async update(id: string, dto: UpdateListingDto, user: AuthenticatedUser): Promise<ListingDto> {
@@ -88,16 +82,13 @@ export class ListingsService {
       },
       include: { media: true }
     });
-    const dto = this.toDto(updated);
-    await this.searchSyncService.syncListingById(dto.id);
-    return dto;
+    return this.toDto(updated);
   }
 
   async remove(id: string, user: AuthenticatedUser): Promise<void> {
     const listing = await this.findListingOrThrow(id);
     this.ensureCanMutate(listing, user);
     await this.prisma.listing.delete({ where: { id: listing.id } });
-    await this.searchSyncService.removeListing(listing.id);
   }
 
   async submit(id: string, user: AuthenticatedUser): Promise<ListingDto> {
@@ -111,9 +102,7 @@ export class ListingsService {
       },
       include: { media: true }
     });
-    const dto = this.toDto(updated);
-    await this.searchSyncService.syncListingById(dto.id);
-    return dto;
+    return this.toDto(updated);
   }
 
   async publish(id: string, user: AuthenticatedUser): Promise<ListingDto> {
@@ -127,9 +116,7 @@ export class ListingsService {
       },
       include: { media: true }
     });
-    const dto = this.toDto(updated);
-    await this.searchSyncService.syncListingById(dto.id);
-    return dto;
+    return this.toDto(updated);
   }
 
   async reject(id: string, user: AuthenticatedUser, dto: RejectListingDto): Promise<ListingDto> {
@@ -148,9 +135,7 @@ export class ListingsService {
       },
       include: { media: true }
     });
-    const dto = this.toDto(updated);
-    await this.searchSyncService.removeListing(dto.id);
-    return dto;
+    return this.toDto(updated);
   }
 
   async findPublic(id: string): Promise<ListingDto> {
@@ -189,18 +174,6 @@ export class ListingsService {
         count: facet._count._all
       }))
     };
-  }
-
-  async findManyByIds(ids: string[]): Promise<ListingDto[]> {
-    if (!ids.length) {
-      return [];
-    }
-    const listings = await this.prisma.listing.findMany({
-      where: { id: { in: ids } },
-      include: { media: true }
-    });
-    const map = new Map(listings.map((listing) => [listing.id, this.toDto(listing)]));
-    return ids.map((id) => map.get(id)).filter((item): item is ListingDto => Boolean(item));
   }
 
   private buildPublicWhere(query: ListingQueryDto): Prisma.ListingWhereInput {
@@ -247,8 +220,6 @@ export class ListingsService {
         return [{ priceKzt: 'desc' }, { createdAt: 'desc' }];
       case ListingSortOption.YEAR_DESC:
         return [{ specs: { path: ['year'], sort: 'desc' } as any }, { createdAt: 'desc' }];
-      case ListingSortOption.RELEVANCE:
-        return [{ boostScore: 'desc' }, { createdAt: 'desc' }];
       case ListingSortOption.NEWEST:
       default:
         return [{ createdAt: 'desc' }];

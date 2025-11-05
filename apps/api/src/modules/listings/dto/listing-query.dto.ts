@@ -12,7 +12,6 @@ import {
 } from 'class-validator';
 
 export enum ListingSortOption {
-  RELEVANCE = 'relevance',
   NEWEST = 'newest',
   PRICE_ASC = 'price_asc',
   PRICE_DESC = 'price_desc',
@@ -75,7 +74,7 @@ export class ListingQueryDto {
   @IsBoolean()
   hasMedia?: boolean;
 
-  @ApiPropertyOptional({ enum: ListingSortOption, default: ListingSortOption.RELEVANCE })
+  @ApiPropertyOptional({ enum: ListingSortOption, default: ListingSortOption.NEWEST })
   @IsOptional()
   @IsEnum(ListingSortOption)
   sort?: ListingSortOption;

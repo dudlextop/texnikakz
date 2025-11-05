@@ -13,7 +13,6 @@ NestJS BFF, Prisma ORM, PostgreSQL, Redis, OpenSearch.
 pnpm --filter @texnika/api start:dev     # запуск API в режиме разработки
 pnpm --filter @texnika/api build         # сборка
 pnpm --filter @texnika/api lint          # линтинг
-pnpm --filter @texnika/api search:reindex # полная переиндексация OpenSearch
 ```
 
 ## Работа с Prisma
@@ -48,64 +47,3 @@ pnpm --filter @texnika/api prisma:seed      # засеять демо-данны
 - 20 чатов с сообщениями
 
 После сидирования можно подключать OpenSearch-индексатор и фронтенд.
-
-## Аутентификация (OTP + JWT cookies)
-
-- `POST /api/auth/otp/request` — запрашивает одноразовый код (для разработки возвращается `devCode=1111`).
-- `POST /api/auth/otp/verify` — проверяет код, создаёт пользователя при первом входе и устанавливает JWT в httpOnly cookie.
-- `POST /api/auth/logout` — очищает сессионную cookie.
-
-JWT хранится в cookie `texnika_session` (имя переопределяется переменной `AUTH_COOKIE_NAME`), срок действия по умолчанию 7 дней.
-
-## Пользователи
-
-- `GET /api/users/me` — возвращает профиль текущего пользователя с базовой информацией о привязанном дилере (если есть).
-
-## Дилеры
-
-- `GET /api/dealers/:id` — публичная карточка дилера (по ID или slug).
-- `GET /api/dealers/:id/stats` — агрегированные счётчики объявлений, заказов и членов команды.
-- `POST /api/dealers` — создание дилера (только роль moderator/admin).
-- `PUT /api/dealers/:id` — обновление дилера (только роль moderator/admin).
-- `DELETE /api/dealers/:id` — удаление дилера (только роль moderator/admin).
-
-## Объявления
-
-- `GET /api/listings` — публичный поиск (OpenSearch) с фильтрами (`q`, `categoryId`, `cityId`, `regionId`, `dealerId`, `priceFrom/priceTo`, `yearFrom/yearTo`, `hasMedia`) и сортировками (`relevance`, `newest`, `price_asc`, `price_desc`, `year_desc`). Возвращает упорядоченные объявления с фасетами по категориям.
-- `GET /api/listings/:id` — публичная детальная карточка (ID или slug, только опубликованные).
-- `POST /api/listings` — создание объявления (автор/дилер), статус `DRAFT`.
-- `PUT /api/listings/:id` — редактирование (владелец, дилер или модератор).
-- `DELETE /api/listings/:id` — удаление (владелец, дилер или модератор).
-- `POST /api/listings/:id/submit` — отправка на модерацию (меняет статус на `PENDING`).
-- `POST /api/listings/:id/publish` — публикация (только moderator/admin, статус `PUBLISHED`).
-- `POST /api/listings/:id/reject` — отклонение с причиной (только moderator/admin, статус `REJECTED`).
-- `POST /api/listings/:id/promotions` — применить продвижение (VIP/TOP/Highlight/Autobump) с перерасчётом `boostScore`.
-
-## Специалисты
-
-- `GET /api/specialists` — публичный каталог операторов с фильтрами (`categoryId`, `cityId`, `skill`, `rateFrom/rateTo`, `experience`, `availability`, `hasEquipment`) и сортировками (`rating_desc`, `experience_desc`, `price_asc`, `reviews_desc`). Возвращает пагинацию и фасеты по категориям.
-- `GET /api/specialists/:id` — карточка специалиста с портфолио и рейтингом.
-- `POST /api/specialists` — создание профиля (авторизованный пользователь).
-- `PUT /api/specialists/:id` — редактирование профиля (владелец или модератор/админ).
-- `DELETE /api/specialists/:id` — удаление профиля (владелец или модератор/админ).
-
-## Медиа
-
-- `POST /api/media/presign` — получение presigned URL для загрузки в MinIO (валидация формата и размера).
-- `POST /api/media/attach` — привязка загруженного файла к объявлению или специалисту с записью в таблицу `media`.
-
-## Чат
-
-- `GET /api/conversations` — список диалогов текущего пользователя (фильтры по listingId/specialistId).
-- `GET /api/conversations/:id/messages` — сообщения конкретного диалога (cursor + limit, направление).
-- `POST /api/conversations/:id/messages` — отправка сообщения (REST).
-- WebSocket `/ws/chat` события:
-  - `joinConversation` — подписка на комнату диалога.
-  - `sendMessage` — отправка сообщения; сервер рассылает `message` всем участникам.
-
-## Поиск (OpenSearch)
-
-- `GET /api/search/listings` — фасетный поиск по индексу `listings` (OpenSearch). Параметры фильтрации совпадают с `/api/listings`; сортировки поддерживают `relevance` (по умолчанию), `newest`, `price_asc`, `price_desc`, `year_desc`.
-- Ранжирование: `function_score` с весами промо (VIP ×4, TOP ×2, Highlight ×1.2), `field_value_factor` по `boostScore` и `freshnessScore` (экспоненциальная свежесть).
-- Фасеты: категории; расширение под регионы/города доступно на фронтенде.
-- Админ-эндпоинт `POST /api/admin/search/reindex` — переиндексация всех опубликованных объявлений (только роль admin).
