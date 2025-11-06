@@ -7,7 +7,6 @@ out
 coverage
 .env
 .env.*
-!.env.example
 dist
 build
 .tmp

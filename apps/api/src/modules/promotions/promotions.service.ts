@@ -2,7 +2,6 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 import { Listing, Promotion, PromotionType, UserRole, Prisma } from '@prisma/client';
 import { AuthenticatedUser } from '../common/interfaces/authenticated-user.interface';
 import { PrismaService } from '../database/prisma.service';
-import { SearchSyncService } from '../search/search-sync.service';
 import { ApplyPromotionDto } from './dto/apply-promotion.dto';
 import { ApplyPromotionResultDto } from './dto/apply-promotion.result';
 import { PromotionDto } from './dto/promotion.dto';
@@ -16,10 +15,7 @@ const PROMOTION_BOOST: Record<PromotionType, number> = {
 
 @Injectable()
 export class PromotionsService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly searchSyncService: SearchSyncService
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async applyPromotion(
     listingId: string,
@@ -67,8 +63,6 @@ export class PromotionsService {
       where: { id: listing.id },
       data: listingUpdate
     });
-
-    await this.searchSyncService.syncListingById(listing.id);
 
     return {
       promotion: this.toDto(promotion),
