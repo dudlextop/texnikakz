@@ -9,3 +9,4 @@ export * from './promo-badge';
 export * from './empty-state';
 export * from './error-boundary';
 export * from './providers/query-provider';
+export * from './promotion-purchase';
