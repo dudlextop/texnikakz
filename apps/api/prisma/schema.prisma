@@ -45,11 +45,38 @@ enum PromotionType {
   AUTOBUMP
 }
 
+enum PricingPlanCode {
+  VIP
+  TOP
+  HIGHLIGHT
+}
+
+enum PromotionSubjectType {
+  LISTING
+  SPECIALIST
+}
+
+enum PromotionActivationStatus {
+  ACTIVE
+  EXPIRED
+}
+
 enum OrderStatus {
   PENDING
   PAID
+  CANCELLED
   FAILED
-  REFUNDED
+}
+
+enum BillingProvider {
+  MOCK
+}
+
+enum TransactionType {
+  DEBIT
+  CREDIT
+  REFUND
+  ADJUST
 }
 
 enum SpecialistAvailability {
@@ -95,6 +122,7 @@ model User {
   messages      Message[]
   favorites     Favorite[]
   orders        Order[]
+  wallet        Wallet?
 }
 
 model Dealer {
@@ -111,7 +139,6 @@ model Dealer {
   updatedAt    DateTime      @updatedAt
   members      User[]        @relation("DealerMembers")
   listings     Listing[]
-  orders       Order[]
 }
 
 enum DealerPlan {
@@ -180,10 +207,8 @@ model Listing {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   media          Media[]
-  promotions     Promotion[]
   favorites      Favorite[]
   conversations  Conversation[]
-  orders         Order[]
 
   @@index([status, categoryId])
   @@index([cityId])
@@ -208,30 +233,6 @@ model Media {
 
   @@index([listingId])
   @@index([specialistId])
-}
-
-model Promotion {
-  id          String        @id @default(cuid())
-  listingId   String
-  listing     Listing       @relation(fields: [listingId], references: [id])
-  type        PromotionType
-  startsAt    DateTime
-  endsAt      DateTime
-  meta        Json?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
-}
-
-model SpecialistPromotion {
-  id            String                    @id @default(cuid())
-  specialistId  String
-  specialist    Specialist                @relation(fields: [specialistId], references: [id])
-  type          SpecialistPromotionType
-  startsAt      DateTime
-  endsAt        DateTime
-  meta          Json?
-  createdAt     DateTime                  @default(now())
-  updatedAt     DateTime                  @updatedAt
 }
 
 model Specialist {
@@ -262,7 +263,6 @@ model Specialist {
   city             City?                     @relation(fields: [cityId], references: [id])
   portfolio        Media[]
   reviews          Review[]
-  promotions       SpecialistPromotion[]
   favorites        Favorite[]
   conversations    Conversation[]
   createdAt        DateTime                  @default(now())
@@ -335,28 +335,97 @@ model Message {
   @@index([senderId])
 }
 
-model Order {
-  id              String       @id @default(cuid())
-  userId          String
-  user            User         @relation(fields: [userId], references: [id])
-  dealerId        String?
-  dealer          Dealer?      @relation(fields: [dealerId], references: [id])
-  listingId       String?
-  listing         Listing?     @relation(fields: [listingId], references: [id])
-  specialistId    String?
-  specialist      Specialist?  @relation(fields: [specialistId], references: [id])
-  promotionType   PromotionType?
-  amountKzt       Decimal      @db.Decimal(18, 2)
-  status          OrderStatus  @default(PENDING)
-  provider        String
-  providerPayload Json?
-  items           Json?
-  createdAt       DateTime     @default(now())
-  paidAt          DateTime?
+model PricingPlan {
+  id           String           @id @default(cuid())
+  code         PricingPlanCode
+  title        String
+  description  String?
+  priceKzt     Int
+  durationDays Int
+  active       Boolean          @default(true)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 
+  @@unique([code])
+}
+
+model Wallet {
+  id         String        @id @default(cuid())
+  userId     String        @unique
+  user       User          @relation(fields: [userId], references: [id])
+  balanceKzt Int           @default(0)
+  transactions Transaction[]
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+}
+
+model Order {
+  id           String         @id @default(cuid())
+  userId       String
+  user         User           @relation(fields: [userId], references: [id])
+  status       OrderStatus    @default(PENDING)
+  totalKzt     Int
+  provider     BillingProvider @default(MOCK)
+  paymentMode  String?
+  metadata     Json?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  paidAt       DateTime?
+  cancelledAt  DateTime?
+  items        OrderItem[]
+  transactions Transaction[]
+
+  @@index([userId])
   @@index([status])
-  @@index([dealerId])
   @@index([createdAt])
+}
+
+model OrderItem {
+  id           String               @id @default(cuid())
+  orderId      String
+  order        Order                @relation(fields: [orderId], references: [id])
+  subjectType  PromotionSubjectType
+  subjectId    String
+  planCode     PricingPlanCode
+  priceKzt     Int
+  durationDays Int
+  createdAt    DateTime             @default(now())
+  activation   PromotionActivation? @relation("OrderItemActivation")
+
+  @@index([orderId])
+  @@index([subjectType, subjectId])
+}
+
+model Transaction {
+  id         String           @id @default(cuid())
+  walletId   String
+  wallet     Wallet           @relation(fields: [walletId], references: [id])
+  orderId    String?
+  order      Order?           @relation(fields: [orderId], references: [id])
+  type       TransactionType
+  amountKzt  Int
+  meta       Json?
+  createdAt  DateTime         @default(now())
+
+  @@index([walletId])
+  @@index([orderId])
+}
+
+model PromotionActivation {
+  id          String                    @id @default(cuid())
+  subjectType PromotionSubjectType
+  subjectId   String
+  planCode    PricingPlanCode
+  startedAt   DateTime
+  expiresAt   DateTime
+  orderItemId String?
+  orderItem   OrderItem?                @relation("OrderItemActivation", fields: [orderItemId], references: [id])
+  status      PromotionActivationStatus @default(ACTIVE)
+  createdAt   DateTime                  @default(now())
+  updatedAt   DateTime                  @updatedAt
+
+  @@index([subjectType, subjectId])
+  @@index([expiresAt])
 }
 
 model AuditLog {

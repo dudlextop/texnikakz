@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
-import { PromoBadgeGroup, SpecialistCard } from '../../../../../components';
+import { getTranslations } from 'next-intl/server';
+import { PromoBadgeGroup, SpecialistCard, PromotionPurchaseButton } from '../../../../../components';
 import type { SpecialistDetail, SpecialistsApiResponse } from '../../../../../types';
 import { serverApiFetch } from '../../../../../lib/server-api';
 
@@ -15,6 +16,7 @@ function formatRate(rate?: number | null) {
 }
 
 export default async function SpecialistDetailPage({ params }: SpecialistDetailPageProps) {
+  const tPromote = await getTranslations({ namespace: 'billing.promote' });
   const specialist = await serverApiFetch<SpecialistDetail>(`/specialists/${params.id}`);
 
   if (!specialist) {
@@ -112,6 +114,18 @@ export default async function SpecialistDetailPage({ params }: SpecialistDetailP
             <button className="mt-2 w-full rounded-full border border-blue-200 px-5 py-2 text-sm font-semibold text-blue-600">
               Написать в чат
             </button>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p className="text-sm font-semibold text-slate-900">{tPromote('ctaTitleSpecialist')}</p>
+            <p className="mt-2 text-sm text-slate-600">{tPromote('ctaDescription')}</p>
+            <div className="mt-4">
+              <PromotionPurchaseButton
+                locale={params.locale}
+                subjectId={specialist.id}
+                subjectType="SPECIALIST"
+                variant="specialist"
+              />
+            </div>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
             <p className="font-semibold text-slate-900">Доступность</p>

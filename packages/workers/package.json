@@ -11,6 +11,7 @@
     "start:dev": "ts-node-dev --respawn src/main.ts"
   },
   "dependencies": {
+    "@prisma/client": "^5.9.1",
     "@texnika/shared": "workspace:*",
     "bullmq": "^4.9.0",
     "ioredis": "^5.4.1",
