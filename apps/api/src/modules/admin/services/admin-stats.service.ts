@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { ListingStatus, OrderStatus } from '@prisma/client';
+import { ListingStatus, OrderStatus, PromotionActivationStatus } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { AdminStatsOverviewDto } from '../dto/admin-stats-overview.dto';
 
@@ -49,7 +49,12 @@ export class AdminStatsService {
       this.prisma.dealer.count(),
       this.prisma.specialist.count(),
       this.prisma.order.count({ where: { status: OrderStatus.PAID } }),
-      this.prisma.promotion.count({ where: { endsAt: { gte: now } } }),
+      this.prisma.promotionActivation.count({
+        where: {
+          status: PromotionActivationStatus.ACTIVE,
+          expiresAt: { gte: now }
+        }
+      }),
       this.prisma.listing.findMany({
         where: { publishedAt: { gte: rangeStart } },
         select: { publishedAt: true },

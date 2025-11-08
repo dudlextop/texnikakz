@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
-import { PromoBadgeGroup, ListingCard } from '../../../../../components';
+import { getTranslations } from 'next-intl/server';
+import { PromoBadgeGroup, ListingCard, PromotionPurchaseButton } from '../../../../../components';
 import type { ListingDetail, ListingsApiResponse } from '../../../../../types';
 import { serverApiFetch } from '../../../../../lib/server-api';
 
@@ -17,6 +18,7 @@ function formatPrice(price?: string | null, currency = 'KZT') {
 }
 
 export default async function ListingDetailPage({ params }: ListingDetailPageProps) {
+  const tPromote = await getTranslations({ namespace: 'billing.promote' });
   const listing = await serverApiFetch<ListingDetail>(`/listings/${params.id}`);
 
   if (!listing) {
@@ -102,6 +104,19 @@ export default async function ListingDetailPage({ params }: ListingDetailPagePro
                 )}
               </div>
             )}
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <p className="text-sm font-semibold text-slate-900">{tPromote('ctaTitleListing')}</p>
+            <p className="mt-2 text-sm text-slate-600">{tPromote('ctaDescription')}</p>
+            <div className="mt-4">
+              <PromotionPurchaseButton
+                locale={params.locale}
+                subjectId={listing.id}
+                subjectType="LISTING"
+                variant="listing"
+              />
+            </div>
           </div>
 
           <div className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600">
